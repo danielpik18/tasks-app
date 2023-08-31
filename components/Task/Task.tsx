@@ -3,10 +3,12 @@
 import "./Task.css";
 import { db } from "@/config/firebase-config";
 import { collection, deleteDoc, doc, updateDoc } from "firebase/firestore";
-import { MouseEvent, useState } from "react";
+import { MouseEvent, useEffect, useRef, useState } from "react";
 
 export default function Task({ id, title, description, done }: TaskType) {
     const [popupOpen, setPopupOpen] = useState<boolean>(false);
+    const taskDropdownRef = useRef<any>(null);
+    const dropdownButtonRef = useRef<any>(null);
 
     const toggleDone = async () => {
         const docToUpdate = doc(db, "tasks", id);
@@ -19,6 +21,22 @@ export default function Task({ id, title, description, done }: TaskType) {
         event.stopPropagation();
         await deleteDoc(doc(db, "tasks", id));
     };
+
+    const handleClickOutside = (event: Event) => {
+        if (
+            popupOpen &&
+            !taskDropdownRef.current?.contains(event.target) &&
+            !dropdownButtonRef.current?.contains(event.target)
+        ) {
+            setPopupOpen(false);
+
+            console.log("ran", popupOpen);
+        }
+    };
+
+    useEffect(() => {
+        document.addEventListener("click", handleClickOutside);
+    });
 
     return (
         <div
@@ -46,9 +64,10 @@ export default function Task({ id, title, description, done }: TaskType) {
 
             <div className="relative w-[fit-content]">
                 <button
+                    ref={dropdownButtonRef}
                     onClick={(e) => {
                         e.stopPropagation();
-                        setPopupOpen((previousValue) => !previousValue);
+                        if (!popupOpen) setPopupOpen(true);
                     }}
                     className="text-2xl -mt-4 ease-in duration-100 hover:scale-125"
                 >
@@ -56,13 +75,10 @@ export default function Task({ id, title, description, done }: TaskType) {
                 </button>
 
                 <div
+                    ref={taskDropdownRef}
                     className={`${
                         !popupOpen && "hidden"
                     } absolute -bottom-9 right-0 rounded bg-white hover:bg-red-500 ease-in duration-100`}
-                    onMouseLeave={(e) => {
-                        e.stopPropagation();
-                        setPopupOpen((previousValue) => !previousValue);
-                    }}
                 >
                     <button
                         onClick={(e) => removeTask(e)}
